@@ -4,13 +4,17 @@ function registerEffect(effect, options) {
   const effectWrapper = () => {
     clearDeps(effectWrapper);
     activeEffect = effectWrapper;
+    effectStack.push(activeEffect);
     effect();
+    effectStack.pop();
+    activeEffect = effectStack[effectStack.length-1];
   };
   effectWrapper.options = options;
   activeEffect = effectWrapper;
   effectStack.push(activeEffect);
   effect();
   effectStack.pop();
+  activeEffect = effectStack[effectStack.length - 1];
 }
 
 function clearDeps(effectWrapper) {
@@ -57,12 +61,14 @@ function trigger(obj, key) {
   const keysMap = objMap.get(obj);
   const depsToRun = new Set(keysMap.get(key));
   for (const effect of depsToRun) {
-    effect();
+    if(effect!==activeEffect){
+      effect();
+    }
   }
 }
 
 const p = new Proxy(
-  { test: 1, flag: true },
+  { test: 1, flag: true, test2:1 },
   {
     get(target, key, proxy) {
       track(target, key);
@@ -82,11 +88,12 @@ registerEffect(() => {
   } else {
     console.log(1);
   }
+  p.test2++;
 }, {});
 
-p.test = 2;
-p.flag = false;
 p.test = 3;
+p.flag = false;
+p.test = 5;
 
 module.exports = {
   registerEffect,
